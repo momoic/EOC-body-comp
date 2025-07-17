@@ -6,13 +6,72 @@ date: "2024-05-17"
 ```{r}
 library(survival)
 library(survminer)
+library(dplyr)
+```
+Clinical features 
+```{r}
+#insert cleaned data 
+```
+
+CT features
+```{r}
+data <- read.csv("E:\\PhD Research\\PhD work\\EOC-body-comp\\body comp dataset.csv")
+weight = read.csv("E:\\PhD Research\\PhD work\\EOC-body-comp\\EOC body comp weight.csv")
+```
+Weight to BMI
+```{r}
+data = merge(data, weight, by = "MRN")
+data$BMI = data$chemo_start_wgt/data$ht_first_met**2
+```
+BMI compared to survival categorical
+```{r}
+for (i in 1:nrow(data)){
+    if (data$BMI[[i]] < 18.5) 
+      {data$BMI_cat[[i]] = "Underweight"}
+    if (data$BMI[[i]] < 25 & data$BMI[[i]]>=18.5) 
+      {data$BMI_cat[[i]] = "Healthy Weight"}
+    if (data$BMI[[i]] < 30 & data$BMI[[i]]>=25) 
+      {data$BMI_cat[[i]] = "Overweight"}
+    if (data$BMI[[i]] < 35 & data$BMI[[i]]>=30) 
+      {data$BMI_cat[[i]] = "Obesity Class I"}
+    if (data$BMI[[i]] < 40 & data$BMI[[i]]>=35) 
+     {data$BMI_cat[[i]] = "Obesity Class II"}
+    if (data$BMI[[i]]>=40) 
+      {data$BMI_cat[[i]] = "Obesity Class III"}
+} 
+
+bmi_tab = data %>%
+  group_by(BMI_cat) %>%
+  summarize(count = n()) 
+bmi_tab = bmi_tab[c(4,2,1,5,3,6),]
+class(data$BMI_cat)
+
+data$BMI_cat = factor(data$BMI_cat, levels = c("Underweight", "Healthy Weight", "Overweight", "Obesity Class I", "Obesity Class II", "Obesity Class III"))
+fit <- survfit(Surv(survtime, survstat) ~ BMI_cat, data)
+ggsurvplot(fit, data, risk.table = TRUE, conf.int = FALSE, pval = TRUE)
 ```
 
 
 ```{r}
-data <- read.csv("C:\\Users\\15sgr\\Documents\\OVCA Body Index Calc\\body comp dataset.csv")
+res.cut <- surv_cutpoint(data, time = "survtime", event = "survstat",
+   variables = c("BMI"))
+plot(res.cut, "BMI", palette = "npg")
 ```
 
+```{r}
+res.cat <- surv_categorize(res.cut)
+logrank <- survdiff(Surv(survtime, survstat) ~ BMI, data = res.cat)
+logrank
+```
+
+```{r}
+fit <- survfit(Surv(survtime, survstat) ~ BMI, res.cat)
+ggsurvplot(fit, risk.table = TRUE, conf.int = FALSE, pval = TRUE)
+```
+
+
+
+CT adipose measurements to indices
 ```{r}
 data$subq_ht <- data$PRE_SUBQ_1 /(data$ht_first_met)^2
 data$vat_ht <- data$PRE_VAT_1 / (data$ht_first_met)^2
@@ -43,7 +102,40 @@ logrank
 fit <- survfit(Surv(survtime, survstat) ~ DMAI, data = res.cat)
 ggsurvplot(fit, risk.table = TRUE, conf.int = FALSE, pval = TRUE)
 ```
+SMI
+```{r}
+res.cut = surv_cutpoint(data, time="survtime", event = "survstat", variables = c("pre_smi_1"))
 
+plot(res.cut, palette = "npg")
+```
+```{r}
+res.cat = surv_categorize(res.cut)
+fit = survfit(Surv(survtime, survstat)~ pre_smi_1, data =res.cat)
+ggsurvplot(fit, res.cat, risk.table = TRUE, conf.int = FALSE, pval = TRUE)
+```
+
+
+PMI
+```{r}
+'''res.cut = surv_cutpoint(data, time="survtime", event = "survstat", variables = c("PMI"))
+
+plot(res.cut, palette = "npg")'''
+```
+
+```{r}
+'''res.cat = surv_categorize(res.cut)
+fit = survfit(Surv(survtime, survstat)~ PMI, data =res.cat)
+ggsurvplot(fit, res.cat, risk.table = TRUE, conf.int = FALSE, pval = TRUE)'''
+```
+
+cox for simple body comp
+```{r}
+res.cox <- coxph(Surv(survtime, survstat) ~ BMI + BMI_cat + pre_smi_1 + DMAI, data =  data)
+summary(res.cox)
+```
+
+
+SMD
 ```{r}
 data$SMD <- (data$PRE_SMA_1 / data$PRE_IMA_1)
 ```
