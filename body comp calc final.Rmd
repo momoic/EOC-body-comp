@@ -10,7 +10,8 @@ library(dplyr)
 ```
 Clinical features 
 ```{r}
-#insert cleaned data 
+#insert cleaned data, need to add patient ID to be able to merge and stratify risk
+
 ```
 
 CT features
@@ -170,6 +171,7 @@ res.cut <- surv_cutpoint(data, time = "survtime", event = "survstat",
 cutpoint_plot <- plot(res.cut, "BCHI")
 cutpoint_plot
 ```
+
 ```{r}
 cut_df <- data.frame("Stats" = res.cut$BCHI$stats, "Cut" = res.cut$BCHI$cuts)
 cut_df$BCHI <- "Low"
@@ -234,6 +236,7 @@ data$Age <- data$ageDX
 res.cox <- coxph(Surv(survtime, survstat) ~ Stage + Age + Grade + Histotype + BCHI, data =  data)
 summary(res.cox)
 ```
+
 ```{r}
 library(forestmodel)
 forest_model(res.cox, covariates = c("Stage", "Age", "Grade", "Histotype", "BCHI"), exponentiate = TRUE,
